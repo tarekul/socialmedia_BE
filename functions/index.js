@@ -3,20 +3,20 @@ const express = require('express');
 const app = express();
 
 const {getAllPosts,postOnePost} = require('./handlers/posts')
-const {signUpUser,login} = require('./handlers/user')
+const {signUpUser,login,uploadImage,addUserDetails,getAuthenticatedUser} = require('./handlers/user')
 const {middleWare} = require('./utils/middleware')
 // const {admin,db} = require('./utils/admin')
 
-//get all posts
+//post routes
 app.get('/post',getAllPosts)
-
-//share a post 
 app.post('/post',middleWare,postOnePost)
 
 
-//sign up route
+//users route
 app.post('/signup',signUpUser)
 app.post('/login',login)
-
+app.post('/user/image',middleWare,uploadImage)
+app.post('/user',middleWare,addUserDetails)
+app.get('/user',middleWare,getAuthenticatedUser)
 
 exports.api = functions.https.onRequest(app);
