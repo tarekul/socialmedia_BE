@@ -15,6 +15,7 @@ exports.middleWare = (req,res,next) => {
     .then(snapshot=>{
       req.user = {}
       req.user.handle = snapshot.docs[0].data().handle
+      req.user.imageUrl = snapshot.docs[0].data().imageUrl
       next()
     })
   })
