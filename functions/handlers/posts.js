@@ -183,3 +183,28 @@ exports.unlikePost = (req,res) => {
       res.status(500).json({error:err.code})
     })
 }
+
+exports.deletePost = (req,res) => {
+  const {postId} = req.params
+  //delete all comments
+  db.collection('comments').get()
+    .then(data=>{
+      data.forEach(doc => {
+        if(doc.data().postId === postId){
+          db.doc(`/comments/${doc.id}`).delete()
+        }
+      })
+      return db.collection('likes').get()
+    })
+    .then(data =>{
+      data.forEach(doc =>{
+        if(doc.data().postId === postId){
+          db.doc(`/likes/${doc.id}`).delete()
+        }
+      })
+      return db.doc(`/post/${postId}`).delete()
+    })
+    .then(()=>{
+      res.json({message: `post id: ${postId} deleted successfully`})
+    })
+}
