@@ -78,23 +78,23 @@ exports.commentOnPost = (req,res) =>{
   const {body} = req.body
   if(body.trim() === '') return res.status(400).json({error:'body cannot be empty'})
 
-  db.doc(`/posts/${postId}`).get()
+  const postDocument = db.doc(`/posts/${postId}`);
+  postDocument.get()
     .then(doc => {
       if(!doc.exists) return res.status(404).json({ error: 'Post not found'})
-      return db.collection('/comments').add({
-        userHandle: req.user.handle,
-        body,
-        createdAt: new Date().toISOString(),
-        postId,
-        userImage: req.user.imageUrl
+      doc.ref.update({commentCount : doc.data().commentCount + 1})
+      .then(() => {
+        return db.collection('/comments').add({
+          userHandle: req.user.handle,
+          body,
+          createdAt: new Date().toISOString(),
+          postId,
+          userImage: req.user.imageUrl
+        })
       })
-    })
-    .then(doc => {
-      commentId = doc.id
-      return db.doc(`posts/${postId}`).update({commentCount: increment})
-    })
-    .then(()=> {
-      return res.status(200).json({message:`document ${commentId} created successfully`})
+      .then(doc => {
+        return res.status(200).json({message:`document ${doc.id} created successfully`})
+      })
     })
     .catch(err=>{
       console.error(err)
@@ -186,25 +186,23 @@ exports.unlikePost = (req,res) => {
 
 exports.deletePost = (req,res) => {
   const {postId} = req.params
-  //delete all comments
-  db.collection('comments').get()
-    .then(data=>{
-      data.forEach(doc => {
-        if(doc.data().postId === postId){
-          db.doc(`/comments/${doc.id}`).delete()
-        }
-      })
-      return db.collection('likes').get()
-    })
-    .then(data =>{
-      data.forEach(doc =>{
-        if(doc.data().postId === postId){
-          db.doc(`/likes/${doc.id}`).delete()
-        }
-      })
-      return db.doc(`/post/${postId}`).delete()
+  const {handle} = req.user
+  
+  const postDocument = db.doc(`/posts/${postId}`);
+  postDocument.get()
+    .then(doc => {
+      if(!doc.exists) return res.status(404).json({error: 'post does not exist'})
+      else if(doc.data().userHandle !== handle){
+        return res.status(403).json({error:'Unauthorized'})
+      }
+      else postDocument.delete()
     })
     .then(()=>{
-      res.json({message: `post id: ${postId} deleted successfully`})
+
+      res.json({message: 'post deleted successfully'})
+    })
+    .catch(err=>{
+      console.error(err)
+      res.status(500).json({error:err.code})
     })
 }
