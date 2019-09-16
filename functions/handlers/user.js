@@ -42,7 +42,7 @@ exports.signUpUser = (req,res)=>{
   .catch(err=>{
     console.error(err)
     if(err.code === "auth/email-already-in-use") return res.status(400).json({error: 'Email already in use'})
-    return res.status(500).json({error: err.code});
+    return res.status(500).json({general: 'Something went wrong, please try again'});
   })
 }
 
@@ -59,7 +59,11 @@ exports.login = (req,res) => {
     return res.status(200).json({token})
   })
   .catch(err=>{
-    return res.status(500).json({error:err.code})
+    console.error(err)
+    if(err.code === 'auth/wrong-password'){
+      return res.status(403).json({general:'wrong credentials, please try again'})
+    }
+    else return res.status(500).json({error:err.code})
   })
 }
 
@@ -165,7 +169,7 @@ exports.uploadImage = (req, res) => {
 
   busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
     console.log(filename,mimetype);
-    if(mimetype !== 'image/jpg' && mimetype !== 'image/png'){
+    if(mimetype !== 'image/jpg' && mimetype !== 'image/png' && mimetype !== 'image/jpeg'){
       return res.status(400).json({error: 'Wrong file type submitted'})
     }
     // my.image.png => ['my', 'image', 'png']

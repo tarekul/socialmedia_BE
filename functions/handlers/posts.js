@@ -7,7 +7,10 @@ exports.getAllPosts = (req,res)=>{
   .then(data=>{
     let posts = [];
     data.forEach(doc=>{
-      posts.push(doc.data())
+      const postData = doc.data()
+      postData.postId = doc.id
+      posts.push(postData)
+
     });
 
     res.json(posts)
@@ -76,7 +79,7 @@ exports.commentOnPost = (req,res) =>{
   let commentId;
   const {postId} = req.params
   const {body} = req.body
-  if(body.trim() === '') return res.status(400).json({error:'body cannot be empty'})
+  if(body.trim() === '') return res.status(400).json({comment:'body cannot be empty'})
 
   const postDocument = db.doc(`/posts/${postId}`);
   postDocument.get()
