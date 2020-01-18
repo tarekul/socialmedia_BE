@@ -1,31 +1,35 @@
 const { db, increment } = require("../utils/admin");
 
 exports.getAllPosts = (req, res) => {
-  db.collection("posts")
+  const getPosts = db
+    .collection("posts")
     .orderBy("createdAt", "desc")
-    .get()
-    .then(data => {
-      let posts = [];
-      data.forEach(doc => {
+    .get();
+  const getComments = db
+    .collection("comments")
+    .orderBy("createdAt", "desc")
+    .get();
+
+  Promise.all([getPosts, getComments])
+    .then(promises => {
+      const allPosts = promises[0];
+      const allComments = promises[1];
+
+      const postAndComm = [];
+      allPosts.forEach(doc => {
         const postData = doc.data();
         postData.postId = doc.id;
         postData.comments = [];
-        db.collection("comments")
-          .orderBy("createdAt", "desc")
-          .get()
-          .then(commentList => {
-            commentList.forEach(comment => {
-              if (comment.postId === postData.postId) {
-                comment.commentId = comment.id;
-                postData.comments.push(comment);
-              }
-            });
-          });
-
-        posts.push(postData);
+        allComments.forEach(comment => {
+          if (comment.data().postId === postData.postId) {
+            const commentData = comment.data();
+            commentData.commentId = comment.id;
+            postData.comments.push(commentData);
+          }
+        });
+        postAndComm.push(postData);
       });
-
-      res.json(posts);
+      res.json(postAndComm);
     })
     .catch(err => {
       console.error(err);
