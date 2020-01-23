@@ -80,7 +80,7 @@ exports.getPost = (req, res) => {
 
 //comment on a post
 exports.commentOnPost = (req, res) => {
-  let commentId;
+  let commentData = {};
   const { postId } = req.params;
   const { body } = req.body;
   if (body.trim() === "")
@@ -94,18 +94,15 @@ exports.commentOnPost = (req, res) => {
       doc.ref
         .update({ commentCount: doc.data().commentCount + 1 })
         .then(() => {
-          return db.collection("/comments").add({
-            userHandle: req.user.handle,
-            body,
-            createdAt: new Date().toISOString(),
-            postId,
-            userImage: req.user.imageUrl
-          });
+          commentData.userHandle = req.user.handle;
+          commentData.body = body;
+          commentData.createdAt = new Date().toISOString();
+          commentData.postId = postId;
+          commentData.userImage = req.user.imageUrl;
+          return db.collection("/comments").add(commentData);
         })
         .then(doc => {
-          return res
-            .status(200)
-            .json({ message: `document ${doc.id} created successfully` });
+          return res.status(200).json(commentData);
         });
     })
     .catch(err => {
