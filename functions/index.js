@@ -4,7 +4,7 @@ const app = express();
 const cors = require("cors");
 app.use(cors());
 
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
   res.header(
     "Access-Control-Allow-Headers",
@@ -20,7 +20,8 @@ const {
   commentOnPost,
   likePost,
   unlikePost,
-  deletePost
+  deletePost,
+  uploadPostImage,
 } = require("./handlers/posts");
 const {
   signUpUser,
@@ -29,13 +30,14 @@ const {
   addUserDetails,
   getAuthenticatedUser,
   getUserDetails,
-  markNotificationsRead
+  markNotificationsRead,
 } = require("./handlers/user");
 const { middleWare } = require("./utils/middleware");
 const { db } = require("./utils/admin");
 
 //post routes
 app.get("/posts", getAllPosts);
+app.post("/post/image/:postId", middleWare, uploadPostImage);
 app.post("/post", middleWare, postOnePost);
 app.get("/post/:postId", getPost);
 app.delete("/post/:postId", middleWare, deletePost);
@@ -56,11 +58,11 @@ exports.api = functions.https.onRequest(app);
 
 exports.createNotificationOnLike = functions.firestore
   .document("likes/{id}")
-  .onCreate(snapshot => {
+  .onCreate((snapshot) => {
     return db
       .doc(`/posts/${snapshot.data().postId}`)
       .get()
-      .then(doc => {
+      .then((doc) => {
         if (
           doc.exists &&
           snapshot.data().userHandle !== doc.data().userHandle
@@ -71,20 +73,20 @@ exports.createNotificationOnLike = functions.firestore
             sender: snapshot.data().userHandle,
             type: "like",
             read: false,
-            postId: doc.id
+            postId: doc.id,
           });
         }
       })
-      .catch(err => console.error(err));
+      .catch((err) => console.error(err));
   });
 
 exports.deleteNotificationOnUnlike = functions.firestore
   .document("likes/{id}")
-  .onDelete(snapshot => {
+  .onDelete((snapshot) => {
     return db
       .doc(`/notifications/${snapshot.id}`)
       .delete()
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
         return;
       });
@@ -92,11 +94,11 @@ exports.deleteNotificationOnUnlike = functions.firestore
 
 exports.createNotificationOnComment = functions.firestore
   .document("comments/{id}")
-  .onCreate(snapshot => {
+  .onCreate((snapshot) => {
     return db
       .doc(`/posts/${snapshot.data().postId}`)
       .get()
-      .then(doc => {
+      .then((doc) => {
         if (
           doc.exists &&
           snapshot.data().userHandle !== doc.data().userHandle
@@ -107,16 +109,16 @@ exports.createNotificationOnComment = functions.firestore
             sender: snapshot.data().userHandle,
             type: "comment",
             read: false,
-            postId: doc.id
+            postId: doc.id,
           });
         }
       })
-      .catch(err => console.error(err));
+      .catch((err) => console.error(err));
   });
 
 exports.onUserImageChange = functions.firestore
   .document("/users/{userId}")
-  .onUpdate(change => {
+  .onUpdate((change) => {
     console.log(change.before.data());
     console.log(change.after.data());
     if (change.before.data().imageUrl !== change.after.data().imageUrl) {
@@ -125,8 +127,8 @@ exports.onUserImageChange = functions.firestore
         .collection("posts")
         .where("userHandle", "==", change.before.data().handle)
         .get()
-        .then(data => {
-          data.forEach(doc => {
+        .then((data) => {
+          data.forEach((doc) => {
             const post = db.doc(`/posts/${doc.id}`);
             batch.update(post, { userImage: change.after.data().imageUrl });
           });
@@ -144,17 +146,14 @@ exports.onPostDelete = functions.firestore
       .collection("comments")
       .where("postId", "==", postId)
       .get()
-      .then(data => {
-        data.forEach(doc => {
+      .then((data) => {
+        data.forEach((doc) => {
           batch.delete(db.doc(`/comments/${doc.id}`));
         });
-        return db
-          .collection("likes")
-          .where("postId", "==", postId)
-          .get();
+        return db.collection("likes").where("postId", "==", postId).get();
       })
-      .then(data => {
-        data.forEach(doc => {
+      .then((data) => {
+        data.forEach((doc) => {
           batch.delete(db.doc(`/likes/${doc.id}`));
         });
         return db
@@ -162,11 +161,11 @@ exports.onPostDelete = functions.firestore
           .where("postId", "==", postId)
           .get();
       })
-      .then(data => {
-        data.forEach(doc => {
+      .then((data) => {
+        data.forEach((doc) => {
           batch.delete(db.doc(`/notifications/${doc.id}`));
         });
         return batch.commit();
       })
-      .catch(err => console.error(err));
+      .catch((err) => console.error(err));
   });
