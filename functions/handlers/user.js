@@ -125,6 +125,7 @@ exports.getUserDetails = (req, res) => {
           userImage,
           likeCount,
           commentCount,
+          postImageUrl,
         } = doc.data();
         userData.posts.push({
           body,
@@ -134,6 +135,7 @@ exports.getUserDetails = (req, res) => {
           likeCount,
           commentCount,
           postId: doc.id,
+          postImageUrl,
         });
       });
       return res.json(userData);
